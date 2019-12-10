@@ -1,9 +1,12 @@
 package service;
 
 import data.RowDTO;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.ss.usermodel.*;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -61,9 +64,22 @@ public class Process {
 
     public void processRow(Row row) {
         //TODO 新建一个rowDTO， 根据日期放入对应的map中
+
+        String date;
+        if (row.getLastCellNum() != 0 && row.getCell(0).getCellType() == CellType.NUMERIC) {
+            date = format.format(row.getCell(0).getDateCellValue());
+        } else {
+            return;
+        }
+        RowDTO studentDTO = new RowDTO();
+        RowDTO teacherDTO = new RowDTO();
+        List<RowDTO> studentList = studentMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
+        List<RowDTO> teacherList = techerMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         for (int i = 0; i < row.getLastCellNum(); i ++) {
+            Cell cell = row.getCell(i);
             String temp = getCellValue(row.getCell(i), i);
         }
+        System.out.println(date);
         System.out.println();
     }
 
@@ -103,5 +119,33 @@ public class Process {
         return "123";
     }
 
+    public void output() throws IOException {
+        Workbook studentBook = WorkbookFactory.create(new File("temp.xlsx"));
+        Set<Map.Entry<String, List<RowDTO>>> entrySet = studentMap.entrySet();
+        for (Map.Entry<String, List<RowDTO>> entry : entrySet) {
+            String date = entry.getKey();
+            Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-")));
+        }
+        studentBook.close();
+    }
 
+    public void setFormat(List<RowDTO> list, Sheet sheet) {
+        int rowNum = 1;
+        for (RowDTO rowDTO : list) {
+            Row row = sheet.createRow(rowNum++);
+
+            row.createCell(0)
+                    .setCellValue(rowDTO.getName());
+            row.createCell(1)
+                    .setCellValue(rowDTO.getUnit());
+
+            row.createCell(2)
+                    .setCellValue(rowDTO.getUnitPrice());
+
+            row.createCell(3).setCellValue(rowDTO.getNumber());
+
+            row.createCell(4)
+                    .setCellValue(rowDTO.getTotalPrice());
+        }
+    }
 }
