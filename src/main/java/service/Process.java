@@ -3,9 +3,10 @@ package service;
 import data.RowDTO;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -62,6 +63,14 @@ public class Process {
         }
     }
 
+    /**
+     * 7，8，9 学生
+     * 10，11，12 老师
+     * 3 unit
+     * 1/2 name
+     *
+     * @param row
+     */
     public void processRow(Row row) {
         //TODO 新建一个rowDTO， 根据日期放入对应的map中
 
@@ -75,77 +84,75 @@ public class Process {
         RowDTO teacherDTO = new RowDTO();
         List<RowDTO> studentList = studentMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         List<RowDTO> teacherList = techerMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
-        for (int i = 0; i < row.getLastCellNum(); i ++) {
-            Cell cell = row.getCell(i);
-            String temp = getCellValue(row.getCell(i), i);
+        int number = row.getRowNum();
+        String name;
+        if (Objects.isNull(row.getCell(1)) || Objects.equals(row.getCell(1).getStringCellValue(), "")) {
+            name = row.getCell(2).getStringCellValue();
+        } else {
+            name = row.getCell(1).getStringCellValue();
         }
-        System.out.println(date);
-        System.out.println();
-    }
+        studentDTO.setName(name);
+        teacherDTO.setName(name);
 
+        String unit = row.getCell(3).getStringCellValue();
+        studentDTO.setUnit(unit);
+        teacherDTO.setUnit(unit);
 
+        String num = String.valueOf(row.getCell(7).getNumericCellValue());
+        studentDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
+        studentDTO.setUnitPrice(String.valueOf(row.getCell(8).getNumericCellValue()));
+        studentDTO.setTotalPrice(String.valueOf(row.getCell(9).getNumericCellValue()));
+        studentDTO.setNo(studentList.size() + 1);
+        studentList.add(studentDTO);
 
-
-    public String getCellValue(Cell cell, int i) {
-        if (cell != null) {
-            switch (cell.getCellTypeEnum()) {
-                case BOOLEAN:
-                    System.out.print(cell.getBooleanCellValue());
-                    break;
-                case NUMERIC:
-                    if (i==0) {
-                        System.out.print(format.format(cell.getDateCellValue()));
-                    } else {
-                        System.out.print(cell.getNumericCellValue());
-                    }
-                    break;
-                case STRING:
-                    System.out.print(cell.getStringCellValue());
-                    break;
-                case BLANK:
-                    break;
-                case ERROR:
-                    System.out.print(cell.getErrorCellValue());
-                    break;
-
-                // CELL_TYPE_FORMULA will never occur
-                case FORMULA:
-                    break;
-                default:
-                    break;
-            }
+        if (number > 13) {
+            num = String.valueOf(row.getCell(10).getNumericCellValue());
+            teacherDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
+            teacherDTO.setUnitPrice(String.valueOf(row.getCell(11).getNumericCellValue()));
+            teacherDTO.setTotalPrice(String.valueOf(row.getCell(12).getNumericCellValue()));
+            teacherDTO.setNo(teacherList.size() + 1);
+            teacherList.add(teacherDTO);
         }
-        System.out.print(",");
-        return "123";
     }
 
     public void output() throws IOException {
-        Workbook studentBook = WorkbookFactory.create(new File("temp.xlsx"));
+        Workbook studentBook = new XSSFWorkbook();
         Set<Map.Entry<String, List<RowDTO>>> entrySet = studentMap.entrySet();
+        System.out.println(entrySet.size());
         for (Map.Entry<String, List<RowDTO>> entry : entrySet) {
             String date = entry.getKey();
-            Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-")));
+            Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-") + 1));
+            printRow(entry.getValue(), sheet);
         }
-        studentBook.close();
+        FileOutputStream fileOutputStream = new FileOutputStream("temp.xlsx");
+        studentBook.write(fileOutputStream);
+        fileOutputStream.close();
     }
 
-    public void setFormat(List<RowDTO> list, Sheet sheet) {
+    public void printRow(List<RowDTO> list, Sheet sheet) {
+        System.out.println(list.size());
         int rowNum = 1;
         for (RowDTO rowDTO : list) {
             Row row = sheet.createRow(rowNum++);
 
             row.createCell(0)
-                    .setCellValue(rowDTO.getName());
+                    .setCellValue(rowDTO.getNo());
+
             row.createCell(1)
+                    .setCellValue(rowDTO.getName());
+            row.createCell(2)
                     .setCellValue(rowDTO.getUnit());
 
-            row.createCell(2)
+            row.createCell(3)
                     .setCellValue(rowDTO.getUnitPrice());
 
-            row.createCell(3).setCellValue(rowDTO.getNumber());
+            row.createCell(4).setCellValue(rowDTO.getNumber());
 
-            row.createCell(4)
+            row.createCell(5)
                     .setCellValue(rowDTO.getTotalPrice());
+
+            row.createCell(6)
+                    .setCellValue(rowDTO.getComment());
         }
     }
 }

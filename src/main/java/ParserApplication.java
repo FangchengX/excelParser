@@ -7,5 +7,6 @@ public class ParserApplication {
         String path = "201911食堂出入库明细 11月（上交） .xls";
         Process process = new Process();
         process.doProcessSheet(path);
+        process.output();
     }
 }
