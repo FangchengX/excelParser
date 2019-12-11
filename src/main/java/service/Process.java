@@ -122,11 +122,34 @@ public class Process {
         for (Map.Entry<String, List<RowDTO>> entry : entrySet) {
             String date = entry.getKey();
             Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-") + 1));
+            printSheetTilte(sheet);
             printRow(entry.getValue(), sheet);
         }
         FileOutputStream fileOutputStream = new FileOutputStream("temp.xlsx");
         studentBook.write(fileOutputStream);
         fileOutputStream.close();
+    }
+
+    public void printSheetTilte(Sheet sheet) {
+        Row row = sheet.createRow(0);
+        row.createCell(0)
+                .setCellValue("编号");
+
+        row.createCell(1)
+                .setCellValue("名");
+        row.createCell(2)
+                .setCellValue("单位");
+
+        row.createCell(3)
+                .setCellValue("单价");
+
+        row.createCell(4).setCellValue("数量");
+
+        row.createCell(5)
+                .setCellValue("总价");
+
+        row.createCell(6)
+                .setCellValue("备注");
     }
 
     public void printRow(List<RowDTO> list, Sheet sheet) {
