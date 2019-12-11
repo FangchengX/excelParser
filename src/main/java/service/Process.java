@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Created by kq644 on 2019/12/9.
@@ -27,26 +28,12 @@ public class Process {
         int sheetNumber = workbook.getNumberOfSheets();
         for (int i = 1; i < sheetNumber; i++) {
             Sheet sheet = workbook.getSheetAt(i);
-            int rowNumber = sheet.getLastRowNum() + 1;
-            for (int j = 2; j < rowNumber; j++) {
-                Row row = sheet.getRow(j);
-                int columnNumber = row.getLastCellNum() + 1;
-                for (int k = 0; k < columnNumber; k++) {
-                    if (Objects.nonNull(row.getCell(k))) {
-                        Cell cell = row.getCell(k);
-                        switch (cell.getCellTypeEnum()) {
-                            case NUMERIC:
-                                System.out.print(cell.getNumericCellValue());
-                                break;
-                            case FORMULA:
-                            default:
-                                System.out.print(row.getCell(k).getStringCellValue());
-                                break;
-                        }
-                    }
-                }
-                System.out.println();
+            if (!Pattern.matches("\\d+\\S+", sheet.getSheetName())) {
+                return;
             }
+            System.out.println("start process sheet:" + sheet.getSheetName());
+            processSheet(sheet);
+            System.out.println("complete process sheet:" + sheet.getSheetName());
         }
     }
 
@@ -59,7 +46,12 @@ public class Process {
     public void processSheet(Sheet sheet) {
         for (int i = 0; i < sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
+//            try {
             processRow(row);
+//            } catch (Exception e) {
+//                System.out.println(sheet.getSheetName()+","+row.getRowNum()+","+e.getMessage());
+////                throw new RuntimeException();
+////            }
         }
     }
 
@@ -75,8 +67,18 @@ public class Process {
         //TODO 新建一个rowDTO， 根据日期放入对应的map中
 
         String date;
+        boolean firstIsNull = Objects.isNull(row) || Objects.isNull(row.getCell(0));
+        if (firstIsNull) {
+            return;
+        } else if (row.getCell(0).getCellType() == CellType.STRING && Objects.equals(row.getCell(0).getStringCellValue(), "")) {
+            return;
+        }
         if (row.getLastCellNum() != 0 && row.getCell(0).getCellType() == CellType.NUMERIC) {
-            date = format.format(row.getCell(0).getDateCellValue());
+            Date dateTime = row.getCell(0).getDateCellValue();
+            if (dateTime.getMonth() != 10) {
+                return;
+            }
+            date = format.format(dateTime);
         } else {
             return;
         }
@@ -84,41 +86,95 @@ public class Process {
         RowDTO teacherDTO = new RowDTO();
         List<RowDTO> studentList = studentMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         List<RowDTO> teacherList = techerMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
-        int number = row.getRowNum();
+        int number = row.getLastCellNum();
         String name;
         if (Objects.isNull(row.getCell(1)) || Objects.equals(row.getCell(1).getStringCellValue(), "")) {
             name = row.getCell(2).getStringCellValue();
         } else {
             name = row.getCell(1).getStringCellValue();
         }
+        int studentOrderNum;
+        int studentOrderUnitPrice;
+        int studentOrderTotolePrice;
+        int teacherOrderNum;
+        int teacherOrderUnitPrice;
+        int teacherOrderTotolePrice;
+        if (number == 13 || number == 16 || number == 14) {
+            studentOrderNum = 7;
+            studentOrderUnitPrice = 8;
+            studentOrderTotolePrice = 9;
+            teacherOrderNum = 10;
+            teacherOrderUnitPrice = 11;
+            teacherOrderTotolePrice = 12;
+        } else if (number == 15 || number == 12) {
+            studentOrderNum = 6;
+            studentOrderUnitPrice = 7;
+            studentOrderTotolePrice = 8;
+            teacherOrderNum = 9;
+            teacherOrderUnitPrice = 10;
+            teacherOrderTotolePrice = 11;
+        } else {
+            System.out.println(number);
+            return;
+        }
         studentDTO.setName(name);
         teacherDTO.setName(name);
 
-        String unit = row.getCell(3).getStringCellValue();
+        String unit = getCellString(row, 3);
         studentDTO.setUnit(unit);
         teacherDTO.setUnit(unit);
 
-        String num = String.valueOf(row.getCell(7).getNumericCellValue());
+        String num = String.valueOf(row.getCell(studentOrderNum).getNumericCellValue());
         studentDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
-        studentDTO.setUnitPrice(String.valueOf(row.getCell(8).getNumericCellValue()));
-        studentDTO.setTotalPrice(String.valueOf(row.getCell(9).getNumericCellValue()));
+        studentDTO.setUnitPrice(getCellDouble(row, studentOrderUnitPrice));
+        studentDTO.setTotalPrice(getCellDouble(row, studentOrderTotolePrice));
         studentDTO.setNo(studentList.size() + 1);
         studentList.add(studentDTO);
 
         if (number > 13) {
-            num = String.valueOf(row.getCell(10).getNumericCellValue());
+            num = String.valueOf(row.getCell(teacherOrderNum).getNumericCellValue());
             teacherDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
-            teacherDTO.setUnitPrice(String.valueOf(row.getCell(11).getNumericCellValue()));
-            teacherDTO.setTotalPrice(String.valueOf(row.getCell(12).getNumericCellValue()));
+            teacherDTO.setUnitPrice(getCellDouble(row, teacherOrderUnitPrice));
+            teacherDTO.setTotalPrice(getCellDouble(row, teacherOrderTotolePrice));
             teacherDTO.setNo(teacherList.size() + 1);
             teacherList.add(teacherDTO);
+        }
+    }
+
+    private Double getCellDouble(Row row, Integer i) {
+        Cell cell = row.getCell(i);
+        if (Objects.isNull(cell)) {
+            return 0.0;
+        }
+        switch (cell.getCellType()) {
+            case NUMERIC:
+                return cell.getNumericCellValue();
+            case FORMULA:
+                return cell.getNumericCellValue();
+            default:
+                System.out.print(cell.getStringCellValue() + ",");
+                return 0.0;
+        }
+    }
+
+    private String getCellString(Row row, Integer i) {
+        Cell cell = row.getCell(i);
+        if (Objects.isNull(cell)) {
+            return "0";
+        }
+        switch (cell.getCellType()) {
+            case NUMERIC:
+                return String.format("%.2f", cell.getNumericCellValue());
+            case FORMULA:
+                return String.format("%.2f", cell.getNumericCellValue());
+            default:
+                return cell.getStringCellValue();
         }
     }
 
     public void output() throws IOException {
         Workbook studentBook = new XSSFWorkbook();
         Set<Map.Entry<String, List<RowDTO>>> entrySet = studentMap.entrySet();
-        System.out.println(entrySet.size());
         for (Map.Entry<String, List<RowDTO>> entry : entrySet) {
             String date = entry.getKey();
             Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-") + 1));
@@ -153,7 +209,6 @@ public class Process {
     }
 
     public void printRow(List<RowDTO> list, Sheet sheet) {
-        System.out.println(list.size());
         int rowNum = 1;
         for (RowDTO rowDTO : list) {
             Row row = sheet.createRow(rowNum++);

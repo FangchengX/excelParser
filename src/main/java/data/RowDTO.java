@@ -11,8 +11,8 @@ public class RowDTO {
     String name;
     String unit;
     Integer number;
-    String unitPrice;
-    String totalPrice;
+    Double unitPrice;
+    Double totalPrice;
     String comment;
 
     public Integer getNo() {
@@ -47,19 +47,19 @@ public class RowDTO {
         this.number = number;
     }
 
-    public String getUnitPrice() {
+    public Double getUnitPrice() {
         return unitPrice;
     }
 
-    public void setUnitPrice(String unitPrice) {
+    public void setUnitPrice(Double unitPrice) {
         this.unitPrice = unitPrice;
     }
 
-    public String getTotalPrice() {
+    public Double getTotalPrice() {
         return totalPrice;
     }
 
-    public void setTotalPrice(String totalPrice) {
+    public void setTotalPrice(Double totalPrice) {
         this.totalPrice = totalPrice;
     }
 
