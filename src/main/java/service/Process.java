@@ -40,14 +40,14 @@ public class Process {
     public void doProcessSheet(String filePath) throws Exception{
         FileInputStream fis = new FileInputStream(filePath);
         Workbook workbook = WorkbookFactory.create(fis);
-        processSheet(workbook.getSheetAt(1));
+        processSheet(workbook.getSheetAt(3));
     }
 
     public void processSheet(Sheet sheet) {
         for (int i = 0; i < sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
 //            try {
-            processRow(row);
+            processRow(row, sheet);
 //            } catch (Exception e) {
 //                System.out.println(sheet.getSheetName()+","+row.getRowNum()+","+e.getMessage());
 ////                throw new RuntimeException();
@@ -63,9 +63,8 @@ public class Process {
      *
      * @param row
      */
-    public void processRow(Row row) {
+    public void processRow(Row row, Sheet sheet) {
         //TODO 新建一个rowDTO， 根据日期放入对应的map中
-
         String date;
         boolean firstIsNull = Objects.isNull(row) || Objects.isNull(row.getCell(0));
         if (firstIsNull) {
@@ -79,11 +78,18 @@ public class Process {
                 return;
             }
             date = format.format(dateTime);
+        } else if (row.getLastCellNum() != 0 && row.getCell(0).getCellType() == CellType.STRING) {
+            date = row.getCell(0).getStringCellValue();
         } else {
+            return;
+        }
+        if (!Pattern.matches("\\d+-\\d+-\\d+", date)) {
             return;
         }
         RowDTO studentDTO = new RowDTO();
         RowDTO teacherDTO = new RowDTO();
+        studentDTO.setSheetName(sheet.getSheetName());
+        teacherDTO.setSheetName(sheet.getSheetName());
         List<RowDTO> studentList = studentMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         List<RowDTO> teacherList = techerMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         int number = row.getLastCellNum();
@@ -95,24 +101,27 @@ public class Process {
         }
         int studentOrderNum;
         int studentOrderUnitPrice;
-        int studentOrderTotolePrice;
+        int studentOrderTotalPrice;
         int teacherOrderNum;
         int teacherOrderUnitPrice;
-        int teacherOrderTotolePrice;
+        int teacherOrderTotalPrice;
+        int orderUnit;
         if (number == 13 || number == 16 || number == 14) {
+            orderUnit = 3;
             studentOrderNum = 7;
             studentOrderUnitPrice = 8;
-            studentOrderTotolePrice = 9;
+            studentOrderTotalPrice = 9;
             teacherOrderNum = 10;
             teacherOrderUnitPrice = 11;
-            teacherOrderTotolePrice = 12;
+            teacherOrderTotalPrice = 12;
         } else if (number == 15 || number == 12) {
+            orderUnit = 2;
             studentOrderNum = 6;
             studentOrderUnitPrice = 7;
-            studentOrderTotolePrice = 8;
+            studentOrderTotalPrice = 8;
             teacherOrderNum = 9;
             teacherOrderUnitPrice = 10;
-            teacherOrderTotolePrice = 11;
+            teacherOrderTotalPrice = 11;
         } else {
             System.out.println(number);
             return;
@@ -120,25 +129,27 @@ public class Process {
         studentDTO.setName(name);
         teacherDTO.setName(name);
 
-        String unit = getCellString(row, 3);
+        String unit = getCellString(row, orderUnit);
         studentDTO.setUnit(unit);
         teacherDTO.setUnit(unit);
 
-        String num = String.valueOf(row.getCell(studentOrderNum).getNumericCellValue());
-        studentDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
-        studentDTO.setUnitPrice(getCellDouble(row, studentOrderUnitPrice));
-        studentDTO.setTotalPrice(getCellDouble(row, studentOrderTotolePrice));
-        studentDTO.setNo(studentList.size() + 1);
-        studentList.add(studentDTO);
+        addRowDTO(studentList, studentDTO, row, studentOrderNum, studentOrderUnitPrice, studentOrderTotalPrice);
 
         if (number > 13) {
-            num = String.valueOf(row.getCell(teacherOrderNum).getNumericCellValue());
-            teacherDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
-            teacherDTO.setUnitPrice(getCellDouble(row, teacherOrderUnitPrice));
-            teacherDTO.setTotalPrice(getCellDouble(row, teacherOrderTotolePrice));
-            teacherDTO.setNo(teacherList.size() + 1);
-            teacherList.add(teacherDTO);
+            addRowDTO(teacherList, teacherDTO, row, teacherOrderNum, teacherOrderUnitPrice, teacherOrderTotalPrice);
         }
+    }
+
+    private void addRowDTO(List<RowDTO> rowDTOList, RowDTO rowDTO, Row row, Integer orderNum, Integer orderUnitPrice, Integer orderTotalPrice) {
+        String num = getCellString(row, orderNum);
+        if (Objects.equals(num, "")) {
+            return;
+        }
+        rowDTO.setNumber(Integer.valueOf(num.substring(0, num.indexOf("."))));
+        rowDTO.setUnitPrice(getCellDouble(row, orderUnitPrice));
+        rowDTO.setTotalPrice(getCellDouble(row, orderTotalPrice));
+        rowDTO.setNo(rowDTOList.size() + 1);
+        rowDTOList.add(rowDTO);
     }
 
     private Double getCellDouble(Row row, Integer i) {
@@ -152,7 +163,6 @@ public class Process {
             case FORMULA:
                 return cell.getNumericCellValue();
             default:
-                System.out.print(cell.getStringCellValue() + ",");
                 return 0.0;
         }
     }
@@ -178,7 +188,7 @@ public class Process {
         for (Map.Entry<String, List<RowDTO>> entry : entrySet) {
             String date = entry.getKey();
             Sheet sheet = studentBook.createSheet(date.substring(date.lastIndexOf("-") + 1));
-            printSheetTilte(sheet);
+            printSheetTitle(sheet);
             printRow(entry.getValue(), sheet);
         }
         FileOutputStream fileOutputStream = new FileOutputStream("temp.xlsx");
@@ -186,7 +196,7 @@ public class Process {
         fileOutputStream.close();
     }
 
-    public void printSheetTilte(Sheet sheet) {
+    public void printSheetTitle(Sheet sheet) {
         Row row = sheet.createRow(0);
         row.createCell(0)
                 .setCellValue("编号");
@@ -231,6 +241,8 @@ public class Process {
 
             row.createCell(6)
                     .setCellValue(rowDTO.getComment());
+            row.createCell(7)
+                    .setCellValue(rowDTO.getSheetName());
         }
     }
 }
