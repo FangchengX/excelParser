@@ -1,5 +1,6 @@
 package service;
 
+import data.MapDTO;
 import data.RowDTO;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.ss.usermodel.*;
@@ -32,7 +33,8 @@ public class Process {
                 return;
             }
             System.out.println("start process sheet:" + sheet.getSheetName());
-            processSheet(sheet);
+            MapDTO mapDTO = mapDTO(sheet);
+            processSheet(sheet, mapDTO);
             System.out.println("complete process sheet:" + sheet.getSheetName());
         }
     }
@@ -40,14 +42,14 @@ public class Process {
     public void doProcessSheet(String filePath) throws Exception{
         FileInputStream fis = new FileInputStream(filePath);
         Workbook workbook = WorkbookFactory.create(fis);
-        processSheet(workbook.getSheetAt(3));
+        processSheet(workbook.getSheetAt(3), null);
     }
 
-    public void processSheet(Sheet sheet) {
+    public void processSheet(Sheet sheet, MapDTO mapDTO) {
         for (int i = 0; i < sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
 //            try {
-            processRow(row, sheet);
+            processRow(row, sheet, mapDTO);
 //            } catch (Exception e) {
 //                System.out.println(sheet.getSheetName()+","+row.getRowNum()+","+e.getMessage());
 ////                throw new RuntimeException();
@@ -63,7 +65,7 @@ public class Process {
      *
      * @param row
      */
-    public void processRow(Row row, Sheet sheet) {
+    public void processRow(Row row, Sheet sheet, MapDTO mapDTO) {
         //TODO 新建一个rowDTO， 根据日期放入对应的map中
         String date;
         boolean firstIsNull = Objects.isNull(row) || Objects.isNull(row.getCell(0));
@@ -94,49 +96,24 @@ public class Process {
         List<RowDTO> teacherList = techerMap.computeIfAbsent(date, (unused) -> Lists.newArrayList());
         int number = row.getLastCellNum();
         String name;
-        if (Objects.isNull(row.getCell(1)) || Objects.equals(row.getCell(1).getStringCellValue(), "")) {
-            name = row.getCell(2).getStringCellValue();
-        } else {
-            name = row.getCell(1).getStringCellValue();
-        }
-        int studentOrderNum;
-        int studentOrderUnitPrice;
-        int studentOrderTotalPrice;
-        int teacherOrderNum;
-        int teacherOrderUnitPrice;
-        int teacherOrderTotalPrice;
-        int orderUnit;
-        if (number == 13 || number == 16 || number == 14) {
-            orderUnit = 3;
-            studentOrderNum = 7;
-            studentOrderUnitPrice = 8;
-            studentOrderTotalPrice = 9;
-            teacherOrderNum = 10;
-            teacherOrderUnitPrice = 11;
-            teacherOrderTotalPrice = 12;
-        } else if (number == 15 || number == 12) {
-            orderUnit = 2;
-            studentOrderNum = 6;
-            studentOrderUnitPrice = 7;
-            studentOrderTotalPrice = 8;
-            teacherOrderNum = 9;
-            teacherOrderUnitPrice = 10;
-            teacherOrderTotalPrice = 11;
-        } else {
-            System.out.println(number);
-            return;
-        }
+//        if (Objects.isNull(row.getCell(1)) || Objects.equals(row.getCell(1).getStringCellValue(), "")) {
+//            name = row.getCell(2).getStringCellValue();
+//        } else {
+//            name = row.getCell(1).getStringCellValue();
+//        }
+        name = row.getCell(mapDTO.getOrderName()).getStringCellValue();
+
         studentDTO.setName(name);
         teacherDTO.setName(name);
 
-        String unit = getCellString(row, orderUnit);
+        String unit = getCellString(row, mapDTO.getOrderUnit());
         studentDTO.setUnit(unit);
         teacherDTO.setUnit(unit);
 
-        addRowDTO(studentList, studentDTO, row, studentOrderNum, studentOrderUnitPrice, studentOrderTotalPrice);
+        addRowDTO(studentList, studentDTO, row, mapDTO.getOrderStudentNum(), mapDTO.getOrderStudentUnitPrice(), mapDTO.getOrderStudentTotalPrice());
 
-        if (number > 13) {
-            addRowDTO(teacherList, teacherDTO, row, teacherOrderNum, teacherOrderUnitPrice, teacherOrderTotalPrice);
+        if (mapDTO.isHasTeacherInfo()) {
+            addRowDTO(teacherList, teacherDTO, row, mapDTO.getOrderTeacherNum(), mapDTO.getOrderTeacherUnitPrice(), mapDTO.getOrderTeacherTotalPrice());
         }
     }
 
@@ -244,5 +221,45 @@ public class Process {
             row.createCell(7)
                     .setCellValue(rowDTO.getSheetName());
         }
+    }
+
+    private MapDTO mapDTO(Sheet sheet) {
+        MapDTO mapDTO = new MapDTO();
+        Row row = sheet.getRow(3);
+        boolean isUnitRow = false;
+        for (int i = 1; i < row.getLastCellNum() + 1; i++) {
+            if (Objects.isNull(row.getCell(i))) {
+                continue;
+            }
+            String value = row.getCell(i).getStringCellValue();
+            if (value.contains("数量")) {
+                isUnitRow = true;
+                break;
+            }
+        }
+        if (!isUnitRow) {
+            row = sheet.getRow(4);
+        }
+        int count = 0;
+        for (int i = 2; i < row.getLastCellNum() + 1; i++) {
+            if (Objects.isNull(row.getCell(i))) {
+                continue;
+            }
+            String value = row.getCell(i).getStringCellValue();
+            if (value.contains("数量")) {
+                count++;
+                mapDTO.setNumber(i, count);
+            } else if (value.contains("单价")) {
+                mapDTO.setUnitPrice(i, count);
+            } else if (value.contains("金额")) {
+                mapDTO.setTotalPrice(i, count);
+            }
+        }
+        if (count < 4) {
+            mapDTO.setHasTeacherInfo(false);
+        } else {
+            mapDTO.setHasTeacherInfo(true);
+        }
+        return mapDTO;
     }
 }
