@@ -1,5 +1,11 @@
 package service.formygirl;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import service.formygirl.dto.ResultDTO;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,17 +17,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import service.formygirl.dto.ResultDTO;
 
 /**
  * @author kq644
  * @since 2021-10-14 12:42
  */
 public class SummaryService {
+
+    public void doDingdingSummary(String examName, String dingdingResultPath) throws InterruptedException {
+        Thread.sleep(5000);
+    }
 
     public void doExamSummary(String examName, String appResultPath, String appProgressPath) throws Exception {
         Map<String, ResultDTO> gradeMap = readAppResult(appResultPath);
