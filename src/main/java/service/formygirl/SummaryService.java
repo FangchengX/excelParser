@@ -3,7 +3,6 @@ package service.formygirl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -31,7 +30,7 @@ public class SummaryService {
     static {
         Map<String, MemberDTO> tempMap = new HashMap<>();
         try {
-            String memberInfo = FileUtils.readFileToString(new File("C:\\Users\\kq644\\Desktop\\lyy\\member.json"), StandardCharsets.UTF_8);
+            String memberInfo = FileUtils.readFileToString(new File("member.json"), StandardCharsets.UTF_8);
             List<MemberDTO> members = JSON.parseArray(memberInfo, MemberDTO.class);
             for (MemberDTO memberDTO : members) {
                 if (Objects.isNull(memberDTO.getId()) || Objects.isNull(memberDTO.getAccount())) {
@@ -40,7 +39,6 @@ public class SummaryService {
                     tempMap.put(memberDTO.getId(), memberDTO);
                 }
             }
-//            tempMap = members.stream().collect(Collectors.toMap(MemberDTO::getId, MemberDTO::getAccount));
         } catch (Exception e) {
             e.printStackTrace();
             tempMap = new HashMap<>();
@@ -62,10 +60,10 @@ public class SummaryService {
             }
             return new MemberDTO(account, code, id);
         }).collect(Collectors.toList());
-        FileUtils.writeStringToFile(new File("C:\\Users\\kq644\\Desktop\\lyy\\member.json"), JSON.toJSONString(members), StandardCharsets.UTF_8);
+        FileUtils.writeStringToFile(new File("member.json"), JSON.toJSONString(members), StandardCharsets.UTF_8);
     }
 
-    public void doDingdingSummary(String examName, String dingdingResultPath) throws IOException {
+    public void doDingdingSummary(String examName, String dingdingResultPath, String outputFolder) throws IOException {
         Map<String, ResultDTO> appResult = readAppResult(examName);
         List<ResultDTO> results = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(new File(dingdingResultPath));
@@ -84,7 +82,7 @@ public class SummaryService {
                 }
                 String progress = row.getCell(12).getStringCellValue();
                 String depart = row.getCell(1).getStringCellValue();
-                ResultDTO resultDTO = getResultData(id, appResult);
+                ResultDTO resultDTO = getResultData(id, appResult, name);
                 resultDTO.setGrade(parseGrade(grade));
                 resultDTO.setName(name);
                 resultDTO.setProgress(progress);
@@ -95,9 +93,6 @@ public class SummaryService {
                     resultDTO.setAccount(memberDTO.getAccount());
                 }
                 resultDTO.setId(id);
-                if (Strings.isNullOrEmpty(id)) {
-                    System.out.println(JSON.toJSON(resultDTO));
-                }
                 results.add(resultDTO);
             }
             results.addAll(appResult.values());
@@ -105,7 +100,7 @@ public class SummaryService {
             System.out.println("Read ding ding result failed");
             throw e;
         }
-        writeDingDingResult(examName, results, "resultDingding");
+        writeDingDingResult(examName, results, outputFolder);
     }
 
     private Map<String, ResultDTO> readAppResult(String examName) throws IOException {
@@ -117,9 +112,9 @@ public class SummaryService {
         return results.stream().collect(Collectors.toMap(ResultDTO::getAccount, resultDTO -> resultDTO));
     }
 
-    private ResultDTO getResultData(String id, Map<String, ResultDTO> appDataMap) {
+    private ResultDTO getResultData(String id, Map<String, ResultDTO> appDataMap, String name) {
         if (!ID_ACCOUNT_MAP.containsKey(id)) {
-            System.out.println("数据少了， 朋友。Missing id：" + id);
+            System.out.println("医院系统中未找到该用户：" + name + "， 用户ID为：" + id + "。请核查");
             return new ResultDTO();
         }
         String account = ID_ACCOUNT_MAP.get(id).getAccount();
@@ -176,6 +171,7 @@ public class SummaryService {
         FileOutputStream fileOutputStream = new FileOutputStream(resultFilePath.toFile());
         examResult.write(fileOutputStream);
         fileOutputStream.close();
+        System.out.println("成绩统计已完成，请查看：" + resultFilePath);
     }
 
     public void printResultTitle(Sheet sheet) {

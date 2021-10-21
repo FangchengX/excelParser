@@ -1,9 +1,11 @@
 package view;
 
 import com.google.common.collect.Lists;
+import service.formygirl.SummaryService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 
 /**
@@ -24,8 +26,8 @@ public class SummaryFrame extends JFrame {
         "病区感染规范",
         "实验室生物安全管理和保护",
         "临床微生物检测标本采集和运送规范",
-            "实验室生物安全相关法律、法规及要点",
-            "手卫生",
+        "实验室生物安全相关法律、法规及要点",
+        "手卫生",
         "多重耐药菌医院感染预防与控制措施",
         "2021年新馆肺炎诊疗与防控培训",
         "三大导管的预防与控制",
@@ -35,14 +37,16 @@ public class SummaryFrame extends JFrame {
     JComboBox<String> cmb = new JComboBox<>();    //创建JComboBox
     String className;
     String filePath;
+    String outputFolder;
 
     public SummaryFrame(JTextArea jTextArea) throws HeadlessException {
         this.jTextArea = jTextArea;
-        JFrame frame = new JFrame("Java下拉列表组件示例");
+        JFrame frame = new JFrame("FOR MY GIRL");
         JPanel jp = new JPanel();
         jp.setLayout(null);
         addClassSelector(jp);
         addFileSelector(jp);
+        addOutputFolderSelector(jp);
         addSummaryButton(jp);
         frame.add(jp);
         frame.add(initLogArea(), BorderLayout.SOUTH);
@@ -64,7 +68,7 @@ public class SummaryFrame extends JFrame {
      * @return
      */
     private void addClassSelector(JPanel jp) {
-        JLabel label = new JLabel("class name：");    //创建标签
+        JLabel label = new JLabel("课程名：");    //创建标签
         label.setBounds(30, 60, 150, 30);
 
         cmb.addItem("--请选择--");    //向下拉列表中添加一项
@@ -76,8 +80,36 @@ public class SummaryFrame extends JFrame {
         jp.add(cmb);
     }
 
+    private void addOutputFolderSelector(JPanel panel) {
+        JLabel label = new JLabel("结果存放文件夹:");
+        label.setBounds(30, 140, 150, 30);
+        JTextField jtf = new JTextField(25);
+        jtf.setBounds(130, 145, 350, 20);
+        JButton button = new JButton("浏览");
+        button.setBounds(480, 145, 80, 20);
+        button.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setCurrentDirectory(new File("C:\\Users\\kq644\\Desktop\\lyy"));
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            int val = fc.showOpenDialog(null);    //文件打开对话框
+            if (val == JFileChooser.APPROVE_OPTION) {
+                //正常选择文件
+                jtf.setText(fc.getSelectedFile().toString());
+                outputFolder = jtf.getText();
+            } else {
+                //未正常选择文件，如选择取消按钮
+                jtf.setText("请选择文件夹");
+                outputFolder = null;
+            }
+        });
+        panel.add(label);
+        panel.add(jtf);
+        panel.add(button);
+    }
+
+
     private void addFileSelector(JPanel panel) {
-        JLabel label = new JLabel("file path:");
+        JLabel label = new JLabel("输入文件:");
         label.setBounds(30, 100, 150, 30);
         JTextField jtf = new JTextField(25);
         jtf.setBounds(130, 105, 350, 20);
@@ -85,6 +117,7 @@ public class SummaryFrame extends JFrame {
         button.setBounds(480, 105, 80, 20);
         button.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
+            fc.setCurrentDirectory(new File("C:\\Users\\kq644\\Desktop\\lyy"));
             int val = fc.showOpenDialog(null);    //文件打开对话框
             if (val == JFileChooser.APPROVE_OPTION) {
                 //正常选择文件
@@ -92,7 +125,7 @@ public class SummaryFrame extends JFrame {
                 filePath = jtf.getText();
             } else {
                 //未正常选择文件，如选择取消按钮
-                jtf.setText("未选择文件");
+                jtf.setText("请选择钉钉结果文件");
                 filePath = null;
             }
         });
@@ -102,15 +135,14 @@ public class SummaryFrame extends JFrame {
     }
 
     private void addSummaryButton(JPanel panel) {
-        JButton button = new JButton("summary");
-        button.setBounds(250, 150, 100, 20);
+        JButton button = new JButton("开始统计");
+        button.setBounds(250, 180, 100, 20);
         panel.add(button);
         button.addActionListener(e -> {
             className = cmb.getSelectedItem().toString();
-//            SummaryService summaryService = new SummaryService();
+            SummaryService summaryService = new SummaryService();
             try {
-                System.out.println("className:" + className + "," + "file input path:" + filePath + "outputFolder:");
-//                summaryService.doDingdingSummary(className, filePath);
+                summaryService.doDingdingSummary(className, filePath, outputFolder);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
