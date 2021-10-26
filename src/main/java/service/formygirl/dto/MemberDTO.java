@@ -11,4 +11,6 @@ public class MemberDTO {
     String account;
     String code;
     String id;
+    String depart;
+    String name;
 }

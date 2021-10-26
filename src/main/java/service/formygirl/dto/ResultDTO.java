@@ -35,15 +35,21 @@ public class ResultDTO {
         }
     }
 
+    public void setDepart(String depart) {
+        if (Objects.isNull(this.depart)) {
+            this.depart = depart;
+        }
+    }
+
     @Override
     public String toString() {
         return "ResultDTO{" +
-                "name='" + name + '\'' +
-                ", grade=" + grade +
-                ", progress='" + progress + '\'' +
-                ", code='" + code + '\'' +
-                ", phone='" + phone + '\'' +
-                '}';
+            "name='" + name + '\'' +
+            ", grade=" + grade +
+            ", progress='" + progress + '\'' +
+            ", code='" + code + '\'' +
+            ", phone='" + phone + '\'' +
+            '}';
     }
 
     public String findCheckMessage() {

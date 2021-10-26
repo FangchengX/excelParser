@@ -26,11 +26,19 @@ import java.util.stream.Collectors;
 public class SummaryService {
 
     public static final Map<String, MemberDTO> ID_ACCOUNT_MAP;
+    public static final Map<String, MemberDTO> NAME_ACCOUNT_MAP;
+    public static final Set<String> REPEAT_NAMES;
+    public static final Map<String, MemberDTO> ACCOUNT_MAP;
 
+    //
     static {
         Map<String, MemberDTO> tempMap = new HashMap<>();
+        Map<String, MemberDTO> nameMap = new HashMap<>();
+        Map<String, MemberDTO> accountMap = new HashMap<>();
+
+        Set<String> repeatNames = new HashSet<>();
         try {
-            String memberInfo = FileUtils.readFileToString(new File("member.json"), StandardCharsets.UTF_8);
+            String memberInfo = FileUtils.readFileToString(new File("C:\\Users\\kq644\\Desktop\\lyy\\run_path\\member.json"), StandardCharsets.UTF_8);
             List<MemberDTO> members = JSON.parseArray(memberInfo, MemberDTO.class);
             for (MemberDTO memberDTO : members) {
                 if (Objects.isNull(memberDTO.getId()) || Objects.isNull(memberDTO.getAccount())) {
@@ -38,12 +46,26 @@ public class SummaryService {
                 } else {
                     tempMap.put(memberDTO.getId(), memberDTO);
                 }
+                if (nameMap.containsKey(memberDTO.getName())) {
+                    if (!nameMap.get(memberDTO.getName()).getId().equals(memberDTO.getId())) {
+//                        System.out.println("Warning, 医院系统存在重名。 姓名：" + memberDTO.getName());
+                        repeatNames.add(memberDTO.getName());
+                    }
+                } else {
+                    nameMap.put(memberDTO.getName(), memberDTO);
+                }
+                if (Objects.nonNull(memberDTO.getAccount())) {
+                    accountMap.put(memberDTO.getAccount(), memberDTO);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
             tempMap = new HashMap<>();
         }
         ID_ACCOUNT_MAP = tempMap;
+        NAME_ACCOUNT_MAP = nameMap;
+        REPEAT_NAMES = repeatNames;
+        ACCOUNT_MAP = accountMap;
     }
 
     public void parseMembers() throws IOException {
@@ -58,7 +80,9 @@ public class SummaryService {
             if (Objects.isNull(account)) {
                 account = object.getString("PY");
             }
-            return new MemberDTO(account, code, id);
+            String depart = object.getString("BMMC");
+            String name = object.getString("XM");
+            return new MemberDTO(account, code, id, depart, name);
         }).collect(Collectors.toList());
         FileUtils.writeStringToFile(new File("member.json"), JSON.toJSONString(members), StandardCharsets.UTF_8);
     }
@@ -73,17 +97,12 @@ public class SummaryService {
                 Row row = sheet.getRow(i);
                 String id = row.getCell(2).getStringCellValue();
                 String name = row.getCell(0).getStringCellValue();
-                Cell cell = row.getCell(13);
-                String grade;
-                try {
-                    grade = cell.getStringCellValue();
-                } catch (Exception e) {
-                    grade = String.valueOf(cell.getNumericCellValue());
-                }
+                String grade = readGrade(row.getCell(13));
+                String reGrade = readGrade(row.getCell(14));
                 String progress = row.getCell(12).getStringCellValue();
                 String depart = row.getCell(1).getStringCellValue();
                 ResultDTO resultDTO = getResultData(id, appResult, name);
-                resultDTO.setGrade(parseGrade(grade));
+                resultDTO.setGrade(Math.max(parseGrade(grade), parseGrade(reGrade)));
                 resultDTO.setName(name);
                 resultDTO.setProgress(progress);
                 resultDTO.setDepart(depart);
@@ -95,12 +114,24 @@ public class SummaryService {
                 resultDTO.setId(id);
                 results.add(resultDTO);
             }
-            results.addAll(appResult.values());
+            Collection<ResultDTO> resultDTOS = appResult.values();
+            parseAppResult(resultDTOS);
+            results.addAll(resultDTOS);
         } catch (Exception e) {
             System.out.println("Read ding ding result failed");
             throw e;
         }
         writeDingDingResult(examName, results, outputFolder);
+    }
+
+    private String readGrade(Cell cell) {
+        String grade;
+        try {
+            grade = cell.getStringCellValue();
+        } catch (Exception e) {
+            grade = String.valueOf(cell.getNumericCellValue());
+        }
+        return grade;
     }
 
     private Map<String, ResultDTO> readAppResult(String examName) throws IOException {
@@ -113,17 +144,32 @@ public class SummaryService {
     }
 
     private ResultDTO getResultData(String id, Map<String, ResultDTO> appDataMap, String name) {
-        if (!ID_ACCOUNT_MAP.containsKey(id)) {
+        if (!ID_ACCOUNT_MAP.containsKey(id) && (REPEAT_NAMES.contains(name) || !NAME_ACCOUNT_MAP.containsKey(name))) {
             System.out.println("医院系统中未找到该用户：" + name + "， 用户ID为：" + id + "。请核查");
             return new ResultDTO();
         }
-        String account = ID_ACCOUNT_MAP.get(id).getAccount();
+        MemberDTO memberDTO = ID_ACCOUNT_MAP.getOrDefault(id, NAME_ACCOUNT_MAP.get(name));
+        String account = memberDTO.getAccount();
+        ResultDTO resultDTO;
         if (appDataMap.containsKey(account)) {
-            ResultDTO resultDTO = appDataMap.get(account);
+            resultDTO = appDataMap.get(account);
             appDataMap.remove(account);
-            return resultDTO;
+        } else {
+            resultDTO = new ResultDTO();
         }
-        return new ResultDTO();
+        resultDTO.setDepart(memberDTO.getDepart());
+        return resultDTO;
+    }
+
+    private void parseAppResult(Collection<ResultDTO> resultDTOS) {
+        for (ResultDTO result : resultDTOS) {
+            if (!ACCOUNT_MAP.containsKey(result.getAccount()) && (REPEAT_NAMES.contains(result.getName()) || !NAME_ACCOUNT_MAP.containsKey(result.getName()))) {
+                continue;
+            }
+            MemberDTO memberDTO = ACCOUNT_MAP.getOrDefault(result.getAccount(), NAME_ACCOUNT_MAP.get(result.getName()));
+            result.setDepart(memberDTO.getDepart());
+            result.setId(memberDTO.getId());
+        }
     }
 
     public void doExamSummary(String examName, String appResultPath, String appProgressPath) throws Exception {

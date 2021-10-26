@@ -15,6 +15,8 @@ import java.util.List;
 public class SummaryFrame extends JFrame {
     JTextArea jTextArea;
 
+    SummaryService summaryService;
+
     protected static final List<String> CLASS_NAMES = Lists.newArrayList(
         "消毒灭菌那些事儿",
         "环境卫生学检测",
@@ -24,12 +26,13 @@ public class SummaryFrame extends JFrame {
         "医疗机构环境表面清洁与消毒",
         "生物安全柜",
         "病区感染规范",
-        "实验室生物安全管理和保护",
+        "实验室生物安全管理和防护",
         "临床微生物检测标本采集和运送规范",
         "实验室生物安全相关法律、法规及要点",
+        "2021实验室生物安全防护培训",
         "手卫生",
         "多重耐药菌医院感染预防与控制措施",
-        "2021年新馆肺炎诊疗与防控培训",
+        "2021年新冠肺炎诊疗与防控培训",
         "三大导管的预防与控制",
         "手术部位感染预防与控制",
         "医疗废物管理"
@@ -40,6 +43,7 @@ public class SummaryFrame extends JFrame {
     String outputFolder;
 
     public SummaryFrame(JTextArea jTextArea) throws HeadlessException {
+        summaryService = new SummaryService();
         this.jTextArea = jTextArea;
         JFrame frame = new JFrame("FOR MY GIRL");
         JPanel jp = new JPanel();
@@ -140,7 +144,6 @@ public class SummaryFrame extends JFrame {
         panel.add(button);
         button.addActionListener(e -> {
             className = cmb.getSelectedItem().toString();
-            SummaryService summaryService = new SummaryService();
             try {
                 summaryService.doDingdingSummary(className, filePath, outputFolder);
             } catch (Exception ex) {
