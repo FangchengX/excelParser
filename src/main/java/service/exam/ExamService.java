@@ -3,11 +3,14 @@ package service.exam;
 import com.google.common.collect.Lists;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -26,6 +29,9 @@ public class ExamService {
 
     private XSSFCellStyle style;
     private XSSFCellStyle infoStyle;
+
+    public List<String> exams = new ArrayList<>();
+    public List<List<String>> classes = new ArrayList<>();
 
     public void parseData(String studentSheet, String examSheet, String outputPath) throws Exception {
         Map<String, List<StudentDTO>> studentMap = readStudentInfo(studentSheet);
@@ -53,18 +59,18 @@ public class ExamService {
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         style.setBorderTop(BorderStyle.THIN);
-        for (Map.Entry<String, List<String>> entry : examMap.entrySet()) {
-            String key = entry.getKey();
-            if (!studentMap.containsKey(key)) {
-                System.out.println("Class not found:" + key);
-                continue;
-            }
-            List<StudentDTO> students = studentMap.get(key);
-            List<String> exams = entry.getValue();
-            exams.forEach(exam -> {
-                Sheet sheet = examResult.createSheet(exam + "_" + key);
+        for (int i = 0; i < exams.size(); i++) {
+            String exam = exams.get(i);
+            List<String> classesForExam = classes.get(i);
+            classesForExam.forEach(clazz -> {
+                Sheet sheet = examResult.createSheet(exam + "_" + clazz);
                 printSheetTitle(sheet);
-                printRows(exam, key, students, sheet);
+                if (!studentMap.containsKey(clazz)) {
+                    System.out.println("Class not found:" + clazz);
+                    return;
+                }
+                List<StudentDTO> students = studentMap.get(clazz);
+                printRows(exam, clazz, students, sheet);
                 sheet.setColumnWidth(1, 15 * 256);
                 sheet.setColumnWidth(2, 15 * 256);
                 sheet.setColumnWidth(3, 10 * 256);
@@ -73,6 +79,26 @@ public class ExamService {
                 sheet.setColumnWidth(6, 20 * 180);
             });
         }
+//        for (Map.Entry<String, List<String>> entry : examMap.entrySet()) {
+//            String key = entry.getKey();
+//            if (!studentMap.containsKey(key)) {
+//                System.out.println("Class not found:" + key);
+//                continue;
+//            }
+//            List<StudentDTO> students = studentMap.get(key);
+//            List<String> exams = entry.getValue();
+//            exams.forEach(exam -> {
+//                Sheet sheet = examResult.createSheet(exam + "_" + key);
+//                printSheetTitle(sheet);
+//                printRows(exam, key, students, sheet);
+//                sheet.setColumnWidth(1, 15 * 256);
+//                sheet.setColumnWidth(2, 15 * 256);
+//                sheet.setColumnWidth(3, 10 * 256);
+//                sheet.setColumnWidth(4, 15 * 256);
+//                sheet.setColumnWidth(5, 10 * 256);
+//                sheet.setColumnWidth(6, 20 * 180);
+//            });
+//        }
         FileOutputStream fileOutputStream = new FileOutputStream(outputPath);
         examResult.write(fileOutputStream);
         fileOutputStream.close();
@@ -132,8 +158,16 @@ public class ExamService {
                 Row row = sheet.getRow(i);
                 String clazz = row.getCell(5).getStringCellValue();
                 String exam = row.getCell(0).getStringCellValue();
-                List<String> list = map.computeIfAbsent(clazz, unused -> Lists.newArrayList());
-                list.add(exam);
+                String last = exams.isEmpty() ? "" : exams.get(exams.size() - 1);
+                List<String> classesForExam;
+                if (!last.equals(exam)) {
+                    exams.add(exam);
+                    classesForExam = new ArrayList<>();
+                    classes.add(classesForExam);
+                } else {
+                    classesForExam = classes.get(classes.size() - 1);
+                }
+                classesForExam.add(clazz);
             }
         }
         return map;
@@ -147,7 +181,7 @@ public class ExamService {
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 StudentDTO studentDTO = new StudentDTO();
-                studentDTO.setCode(row.getCell(0).getStringCellValue());
+                studentDTO.setCode(getCode(row));
                 studentDTO.setClazz(row.getCell(2).getStringCellValue());
                 studentDTO.setName(row.getCell(1).getStringCellValue());
                 List<StudentDTO> students = map.computeIfAbsent(studentDTO.getClazz(), unused -> Lists.newArrayList());
@@ -156,5 +190,14 @@ public class ExamService {
             }
         }
         return map;
+    }
+
+    private String getCode(Row row) {
+        Cell cell = row.getCell(0);
+        if (Objects.equals(cell.getCellType(), CellType.STRING)) {
+            return cell.getStringCellValue();
+        } else {
+            return String.valueOf((long) row.getCell(0).getNumericCellValue());
+        }
     }
 }
