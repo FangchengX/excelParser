@@ -38,7 +38,7 @@ public class SummaryService {
 
         Set<String> repeatNames = new HashSet<>();
         try {
-            String memberInfo = FileUtils.readFileToString(new File("C:\\Users\\kq644\\Desktop\\lyy\\run_path\\member.json"), StandardCharsets.UTF_8);
+            String memberInfo = FileUtils.readFileToString(new File("member.json"), StandardCharsets.UTF_8);
             List<MemberDTO> members = JSON.parseArray(memberInfo, MemberDTO.class);
             for (MemberDTO memberDTO : members) {
                 if (Objects.isNull(memberDTO.getId()) || Objects.isNull(memberDTO.getAccount())) {
@@ -114,9 +114,9 @@ public class SummaryService {
                 resultDTO.setId(id);
                 results.add(resultDTO);
             }
-            Collection<ResultDTO> resultDTOS = appResult.values();
-            parseAppResult(resultDTOS);
-            results.addAll(resultDTOS);
+//            Collection<ResultDTO> resultDTOS = appResult.values();
+//            parseAppResult(resultDTOS);
+//            results.addAll(resultDTOS);
         } catch (Exception e) {
             System.out.println("Read ding ding result failed");
             throw e;
@@ -125,6 +125,9 @@ public class SummaryService {
     }
 
     private String readGrade(Cell cell) {
+        if (Objects.isNull(cell)) {
+            return "0";
+        }
         String grade;
         try {
             grade = cell.getStringCellValue();

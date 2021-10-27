@@ -1,16 +1,17 @@
 import com.google.common.collect.Lists;
-import java.awt.*;
-import java.util.List;
-import javax.swing.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import service.exam.ExamService;
 import view.MyPrintStream;
 import view.SummaryFrame;
 
+import javax.swing.*;
+import java.awt.*;
+import java.util.List;
+
 public class ParserApplication {
     public static void main(String[] args) throws Exception {
-        forMySister();
+        forMyGirl();
     }
 
     public static void forMySister() throws Exception {
