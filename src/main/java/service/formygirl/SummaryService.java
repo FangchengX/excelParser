@@ -3,12 +3,7 @@ package service.formygirl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.io.FileUtils;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import service.formygirl.dto.MemberDTO;
-import service.formygirl.dto.ResultDTO;
-
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -16,8 +11,25 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import service.formygirl.dto.DepartDTO;
+import service.formygirl.dto.MemberDTO;
+import service.formygirl.dto.ResultDTO;
 
 /**
  * @author kq644
@@ -38,7 +50,7 @@ public class SummaryService {
 
         Set<String> repeatNames = new HashSet<>();
         try {
-            String memberInfo = FileUtils.readFileToString(new File("C:\\Users\\kq644\\Desktop\\lyy\\run_path\\member.json"), StandardCharsets.UTF_8);
+            String memberInfo = FileUtils.readFileToString(new File("member.json"), StandardCharsets.UTF_8);
             List<MemberDTO> members = JSON.parseArray(memberInfo, MemberDTO.class);
             for (MemberDTO memberDTO : members) {
                 if (Objects.isNull(memberDTO.getId()) || Objects.isNull(memberDTO.getAccount())) {
@@ -114,9 +126,9 @@ public class SummaryService {
                 resultDTO.setId(id);
                 results.add(resultDTO);
             }
-            Collection<ResultDTO> resultDTOS = appResult.values();
-            parseAppResult(resultDTOS);
-            results.addAll(resultDTOS);
+//            Collection<ResultDTO> resultDTOS = appResult.values();
+//            parseAppResult(resultDTOS);
+//            results.addAll(resultDTOS);
         } catch (Exception e) {
             System.out.println("Read ding ding result failed");
             throw e;
@@ -125,6 +137,9 @@ public class SummaryService {
     }
 
     private String readGrade(Cell cell) {
+        if (Objects.isNull(cell)) {
+            return "0";
+        }
         String grade;
         try {
             grade = cell.getStringCellValue();
@@ -153,7 +168,7 @@ public class SummaryService {
         ResultDTO resultDTO;
         if (appDataMap.containsKey(account)) {
             resultDTO = appDataMap.get(account);
-            appDataMap.remove(account);
+//            appDataMap.remove(account);
         } else {
             resultDTO = new ResultDTO();
         }
@@ -201,6 +216,46 @@ public class SummaryService {
         Path resultFilePath = resultPath.resolve(examName + ".xlsx");
         XSSFWorkbook examResult = new XSSFWorkbook();
         Sheet sheet = examResult.createSheet("考核结果");
+        Map<String, DepartDTO> summaryMap = printExamSheet(results, sheet);
+        Sheet summary = examResult.createSheet("统计结果");
+        printSummarySheet(summary, summaryMap);
+        FileOutputStream fileOutputStream = new FileOutputStream(resultFilePath.toFile());
+        examResult.write(fileOutputStream);
+        fileOutputStream.close();
+        System.out.println("成绩统计已完成，请查看：" + resultFilePath);
+    }
+
+    private void printSummarySheet(Sheet summary, Map<String, DepartDTO> summaryMap) {
+        printSummaryTitle(summary);
+        List<DepartDTO> departs = Lists.newArrayList(summaryMap.values());
+        departs.sort(((o1, o2) -> o2.getFailNumber() - o1.getFailNumber()));
+        for (int i = 1; i <= departs.size(); i++) {
+            Row row = summary.createRow(i);
+            DepartDTO result = departs.get(i - 1);
+            row.createCell(0).setCellValue(result.getDepart());
+            row.createCell(1).setCellValue(result.getTotalNumber());
+            row.createCell(2).setCellValue(result.getPassNumber());
+            row.createCell(3).setCellValue(result.getFailNumber());
+            row.createCell(4).setCellValue(String.format("%.2f", result.getPassPercent() * 100) + "%");
+        }
+    }
+
+    private void printSummaryTitle(Sheet sheet) {
+        Row row = sheet.createRow(0);
+        Cell cell1 = row.createCell(0);
+        Cell cell2 = row.createCell(1);
+        Cell cell3 = row.createCell(2);
+        Cell cell4 = row.createCell(3);
+        Cell cell5 = row.createCell(4);
+        cell1.setCellValue("部门");
+        cell2.setCellValue("总考核人数");
+        cell3.setCellValue("通过人数");
+        cell4.setCellValue("不通过人数");
+        cell5.setCellValue("通过率");
+    }
+
+    private Map<String, DepartDTO> printExamSheet(List<ResultDTO> results, Sheet sheet) {
+        Map<String, DepartDTO> map = new HashMap<>();
         printResultTitle(sheet);
         for (int i = 1; i <= results.size(); i++) {
             Row row = sheet.createRow(i);
@@ -213,11 +268,11 @@ public class SummaryService {
             row.createCell(5).setCellValue(result.getProgress());
             row.createCell(6).setCellValue(result.getGrade());
             row.createCell(7).setCellValue(result.findCheckMessage());
+            String depart = result.getDepart();
+            DepartDTO departDTO = map.computeIfAbsent(depart, unused -> new DepartDTO(depart));
+            departDTO.addNumber(result.pass());
         }
-        FileOutputStream fileOutputStream = new FileOutputStream(resultFilePath.toFile());
-        examResult.write(fileOutputStream);
-        fileOutputStream.close();
-        System.out.println("成绩统计已完成，请查看：" + resultFilePath);
+        return map;
     }
 
     public void printResultTitle(Sheet sheet) {
