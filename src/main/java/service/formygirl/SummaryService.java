@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -99,7 +100,8 @@ public class SummaryService {
         FileUtils.writeStringToFile(new File("member.json"), JSON.toJSONString(members), StandardCharsets.UTF_8);
     }
 
-    public void doDingdingSummary(String examName, String dingdingResultPath, String outputFolder) throws IOException {
+    public void doDingdingSummary(String examName, String dingdingResultPath, String outputFolder) throws IOException
+        , InvocationTargetException, IllegalAccessException {
         Map<String, ResultDTO> appResult = readAppResult(examName);
         List<ResultDTO> results = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(new File(dingdingResultPath));
@@ -158,19 +160,22 @@ public class SummaryService {
         return results.stream().collect(Collectors.toMap(ResultDTO::getAccount, resultDTO -> resultDTO));
     }
 
-    private ResultDTO getResultData(String id, Map<String, ResultDTO> appDataMap, String name) {
+    private ResultDTO getResultData(String id, Map<String, ResultDTO> appDataMap, String name) throws InvocationTargetException, IllegalAccessException {
         if (!ID_ACCOUNT_MAP.containsKey(id) && (REPEAT_NAMES.contains(name) || !NAME_ACCOUNT_MAP.containsKey(name))) {
             System.out.println("医院系统中未找到该用户：" + name + "， 用户ID为：" + id + "。请核查");
             return new ResultDTO();
         }
         MemberDTO memberDTO = ID_ACCOUNT_MAP.getOrDefault(id, NAME_ACCOUNT_MAP.get(name));
         String account = memberDTO.getAccount();
-        ResultDTO resultDTO;
+        ResultDTO resultDTO = new ResultDTO();
         if (appDataMap.containsKey(account)) {
-            resultDTO = appDataMap.get(account);
-//            appDataMap.remove(account);
-        } else {
-            resultDTO = new ResultDTO();
+            ResultDTO appResult = appDataMap.get(account);
+            resultDTO.setName(name);
+            resultDTO.setProgress(appResult.getProgress());
+            resultDTO.setCode(appResult.getCode());
+            resultDTO.setPhone(appResult.getPhone());
+            resultDTO.setAccount(appResult.getAccount());
+            resultDTO.setGrade(appResult.getGrade());
         }
         resultDTO.setDepart(memberDTO.getDepart());
         return resultDTO;
@@ -348,6 +353,7 @@ public class SummaryService {
     }
 
     private double parseGrade(String grade) {
+        grade = dealGrade(grade);
         if (Objects.equals(grade, "未开始")) {
             return 0.0;
         }
@@ -357,5 +363,14 @@ public class SummaryService {
             System.out.println("parse grade failed, input:" + grade);
             return 0.0;
         }
+    }
+
+    private String dealGrade(String grade) {
+        int start = Math.max(grade.indexOf("("), grade.indexOf("（"));
+        int end = Math.max(grade.indexOf(")"), grade.indexOf("）"));
+        if (start < 0 || end < 0) {
+            return grade;
+        }
+        return grade.substring(start + 1, end).trim();
     }
 }

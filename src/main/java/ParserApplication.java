@@ -69,13 +69,13 @@ public class ParserApplication {
 //        summaryService.parseMembers();
 //        String filePath = "C:\\Users\\kq644\\Desktop\\lyy\\线上课_1.消毒灭菌那些事儿.xlsx";
 //        summaryService.doDingdingSummary("消毒灭菌那些事儿", filePath);
-        appClasses.forEach(data -> {
-            try {
-                summaryService.doExamSummary(data.getName(), data.getResultPath(), data.getProgressPath());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+//        appClasses.forEach(data -> {
+//            try {
+//                summaryService.doExamSummary(data.getName(), data.getResultPath(), data.getProgressPath());
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        });
         JTextArea jTextArea = new JTextArea();
         MyPrintStream myPrintStream = new MyPrintStream(System.out, jTextArea);
         System.setOut(myPrintStream);
