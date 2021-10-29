@@ -1,12 +1,11 @@
 package view;
 
 import com.google.common.collect.Lists;
-import service.formygirl.SummaryService;
-
-import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.util.List;
+import javax.swing.*;
+import service.formygirl.SummaryService;
 
 /**
  * @author fangcheng
@@ -48,6 +47,7 @@ public class SummaryFrame extends JFrame {
         JFrame frame = new JFrame("FOR MY GIRL");
         JPanel jp = new JPanel();
         jp.setLayout(null);
+        addPicture(jp);
         addClassSelector(jp);
         addFileSelector(jp);
         addOutputFolderSelector(jp);
@@ -66,6 +66,15 @@ public class SummaryFrame extends JFrame {
         jTextArea.setEditable(false);
         jScrollPane.setViewportView(jTextArea);
         return jScrollPane;
+    }
+
+    private void addPicture(JPanel panel) {
+        JLabel boy = new JLabel(new ImageIcon("boy.jpg"));
+        boy.setBounds(20, 20, 40, 40);
+        panel.add(boy);
+        JLabel girl = new JLabel(new ImageIcon("girl.jpg"));
+        girl.setBounds(60, 20, 40, 40);
+        panel.add(girl);
     }
 
     /**

@@ -353,10 +353,10 @@ public class SummaryService {
     }
 
     private double parseGrade(String grade) {
-        grade = dealGrade(grade);
-        if (Objects.equals(grade, "未开始")) {
+        if (Objects.equals(grade, "未开始") || Objects.equals(grade, "未参与")) {
             return 0.0;
         }
+        grade = dealGrade(grade);
         try {
             return Double.parseDouble(grade);
         } catch (Exception e) {
