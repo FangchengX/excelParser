@@ -1,7 +1,8 @@
 package service.formygirl.dto;
 
-import java.util.Objects;
 import lombok.Data;
+
+import java.util.Objects;
 
 /**
  * @author kq644
@@ -17,6 +18,8 @@ public class ResultDTO {
     String account;
     String depart;
     String id;
+    String subDepart;
+    String type;
 
     public String getDepart() {
         return depart == null ? "未知部门" : depart;

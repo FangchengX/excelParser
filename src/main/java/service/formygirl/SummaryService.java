@@ -4,6 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import service.formygirl.dto.DepartDTO;
+import service.formygirl.dto.MemberDTO;
+import service.formygirl.dto.ResultDTO;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -12,25 +19,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.text.Collator;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FileUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import service.formygirl.dto.DepartDTO;
-import service.formygirl.dto.MemberDTO;
-import service.formygirl.dto.ResultDTO;
 
 /**
  * @author kq644
@@ -114,12 +105,16 @@ public class SummaryService {
                 String grade = readGrade(row.getCell(13));
                 String reGrade = readGrade(row.getCell(14));
                 String progress = row.getCell(12).getStringCellValue();
-                String depart = row.getCell(1).getStringCellValue();
+                String depart = row.getCell(5).getStringCellValue();
+                String subDepart = row.getCell(6).getStringCellValue();
+                String type = row.getCell(8).getStringCellValue();
                 ResultDTO resultDTO = getResultData(id, appResult, name);
                 resultDTO.setGrade(Math.max(parseGrade(grade), parseGrade(reGrade)));
                 resultDTO.setName(name);
                 resultDTO.setProgress(progress);
                 resultDTO.setDepart(depart);
+                resultDTO.setSubDepart(subDepart);
+                resultDTO.setType(type);
                 MemberDTO memberDTO = ID_ACCOUNT_MAP.getOrDefault(id, null);
                 if (Objects.nonNull(memberDTO)) {
                     resultDTO.setCode(memberDTO.getCode());
@@ -154,6 +149,7 @@ public class SummaryService {
     private Map<String, ResultDTO> readAppResult(String examName) throws IOException {
         Path resultFilePath = getAppResultPath(examName);
         if (!resultFilePath.toFile().exists()) {
+            System.out.println("App数据不存在，路径:" + resultFilePath);
             return new HashMap<>();
         }
         List<ResultDTO> results = JSON.parseArray(FileUtils.readFileToString(resultFilePath.toFile(), StandardCharsets.UTF_8), ResultDTO.class);
@@ -262,6 +258,14 @@ public class SummaryService {
     private Map<String, DepartDTO> printExamSheet(List<ResultDTO> results, Sheet sheet) {
         Map<String, DepartDTO> map = new HashMap<>();
         printResultTitle(sheet);
+        Comparator comparator = Collator.getInstance(Locale.CHINA);
+        results.sort((o1, o2) -> {
+            if (Objects.equals(o1.getDepart(), o2.getDepart())) {
+                return comparator.compare(o1.getSubDepart(), o2.getSubDepart());
+            } else {
+                return comparator.compare(o1.getDepart(), o2.getDepart());
+            }
+        });
         for (int i = 1; i <= results.size(); i++) {
             Row row = sheet.createRow(i);
             ResultDTO result = results.get(i - 1);
@@ -269,10 +273,12 @@ public class SummaryService {
             row.createCell(1).setCellValue(result.getAccount());
             row.createCell(2).setCellValue(result.getCode());
             row.createCell(3).setCellValue(result.getDepart());
-            row.createCell(4).setCellValue(result.getId());
-            row.createCell(5).setCellValue(result.getProgress());
-            row.createCell(6).setCellValue(result.getGrade());
-            row.createCell(7).setCellValue(result.findCheckMessage());
+            row.createCell(4).setCellValue(result.getSubDepart());
+            row.createCell(5).setCellValue(result.getId());
+            row.createCell(6).setCellValue(result.getType());
+            row.createCell(7).setCellValue(result.getProgress());
+            row.createCell(8).setCellValue(result.getGrade());
+            row.createCell(9).setCellValue(result.findCheckMessage());
             String depart = result.getDepart();
             DepartDTO departDTO = map.computeIfAbsent(depart, unused -> new DepartDTO(depart));
             departDTO.addNumber(result.pass());
@@ -290,14 +296,19 @@ public class SummaryService {
         Cell cell6 = row.createCell(5);
         Cell cell7 = row.createCell(6);
         Cell cell8 = row.createCell(7);
+        Cell cell9 = row.createCell(8);
+        Cell cell10 = row.createCell(9);
+
         cell1.setCellValue("姓名");
         cell2.setCellValue("账号");
         cell3.setCellValue("终生代码");
-        cell4.setCellValue("部门");
-        cell5.setCellValue("工号");
-        cell6.setCellValue("课程进度");
-        cell7.setCellValue("考核结果");
-        cell8.setCellValue("是否通过");
+        cell4.setCellValue("科室");
+        cell5.setCellValue("部门");
+        cell6.setCellValue("工号");
+        cell7.setCellValue("类型");
+        cell8.setCellValue("课程进度");
+        cell9.setCellValue("考核结果");
+        cell10.setCellValue("是否通过");
     }
 
     private void readAppProgress(String appProgressPath, Map<String, ResultDTO> gradeMap) throws IOException {
