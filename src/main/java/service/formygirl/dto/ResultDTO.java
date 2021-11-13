@@ -1,8 +1,7 @@
 package service.formygirl.dto;
 
-import lombok.Data;
-
 import java.util.Objects;
+import lombok.Data;
 
 /**
  * @author kq644
@@ -18,6 +17,10 @@ public class ResultDTO {
     String account;
     String depart;
     String id;
+
+    public String getDepart() {
+        return depart == null ? "未知部门" : depart;
+    }
 
     public void setGrade(double grade) {
         this.grade = Math.max(grade, this.grade);
@@ -52,14 +55,18 @@ public class ResultDTO {
             '}';
     }
 
-    public String findCheckMessage() {
+    public boolean pass() {
         if (Objects.isNull(progress)) {
-            return "不通过";
+            return false;
         }
         double progressD = Double.parseDouble(this.progress.replace("%", ""));
         if (grade < 80 || progressD < 90) {
-            return "不通过";
+            return false;
         }
-        return "通过";
+        return true;
+    }
+
+    public String findCheckMessage() {
+        return pass() ? "通过" : "不通过";
     }
 }
