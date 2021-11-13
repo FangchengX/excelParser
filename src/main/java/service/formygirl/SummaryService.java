@@ -248,7 +248,7 @@ public class SummaryService {
         Cell cell3 = row.createCell(2);
         Cell cell4 = row.createCell(3);
         Cell cell5 = row.createCell(4);
-        cell1.setCellValue("部门");
+        cell1.setCellValue("科室");
         cell2.setCellValue("总考核人数");
         cell3.setCellValue("通过人数");
         cell4.setCellValue("不通过人数");
