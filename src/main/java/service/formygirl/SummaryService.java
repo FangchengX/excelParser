@@ -280,8 +280,10 @@ public class SummaryService {
             row.createCell(8).setCellValue(result.getGrade());
             row.createCell(9).setCellValue(result.findCheckMessage());
             String depart = result.getDepart();
-            DepartDTO departDTO = map.computeIfAbsent(depart, unused -> new DepartDTO(depart));
-            departDTO.addNumber(result.pass());
+            if (Objects.equals(result.getType().trim(), "必修")) {
+                DepartDTO departDTO = map.computeIfAbsent(depart, unused -> new DepartDTO(depart));
+                departDTO.addNumber(result.pass());
+            }
         }
         return map;
     }
