@@ -15,4 +15,8 @@ public class StudentDTO {
      * 学号
      */
     String code;
+    /**
+     * 学院
+     */
+    String college;
 }

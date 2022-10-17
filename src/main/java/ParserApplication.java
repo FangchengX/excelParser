@@ -1,4 +1,7 @@
 import com.google.common.collect.Lists;
+import java.awt.*;
+import java.util.List;
+import javax.swing.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import service.exam.ExamService;
@@ -6,19 +9,15 @@ import service.formygirl.SummaryService;
 import view.MyPrintStream;
 import view.SummaryFrame;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.List;
-
 public class ParserApplication {
     public static void main(String[] args) throws Exception {
-        forMyGirl();
+        forMySister();
     }
 
     public static void forMySister() throws Exception {
-        String studentSheet = "C:\\Users\\kq644\\Desktop\\qiandao\\2021\\考场签到表\\在校生名单20-21-1.xlsx";
-        String examSheet = "C:\\Users\\kq644\\Desktop\\qiandao\\2021\\考场签到表\\2021-2022-1学期考试安排.xls";
-        String outputPath = "C:\\Users\\kq644\\Desktop\\qiandao\\2021\\考场签到表\\result.xlsx";
+        String studentSheet = "C:\\Users\\kq644\\Desktop\\qiandao\\2022\\考试签到表\\在校生名单22-23-1.xlsx";
+        String examSheet = "C:\\Users\\kq644\\Desktop\\qiandao\\2022\\考试安排.xlsx";
+        String outputPath = "C:\\Users\\kq644\\Desktop\\qiandao\\2022\\考试签到表\\result_new.xlsx";
         ExamService examService = new ExamService();
         examService.parseData(studentSheet, examSheet, outputPath);
     }

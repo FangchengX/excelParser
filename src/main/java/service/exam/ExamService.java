@@ -73,10 +73,11 @@ public class ExamService {
                 printRows(exam, clazz, students, sheet);
                 sheet.setColumnWidth(1, 15 * 256);
                 sheet.setColumnWidth(2, 15 * 256);
-                sheet.setColumnWidth(3, 10 * 256);
-                sheet.setColumnWidth(4, 15 * 256);
-                sheet.setColumnWidth(5, 10 * 256);
-                sheet.setColumnWidth(6, 20 * 180);
+                sheet.setColumnWidth(3, 15 * 256);
+                sheet.setColumnWidth(4, 10 * 256);
+                sheet.setColumnWidth(5, 20 * 256);
+                sheet.setColumnWidth(6, 10 * 256);
+                sheet.setColumnWidth(7, 20 * 180);
             });
         }
 //        for (Map.Entry<String, List<String>> entry : examMap.entrySet()) {
@@ -108,13 +109,14 @@ public class ExamService {
         for (StudentDTO student : students) {
             Row row = sheet.createRow(student.getNumber());
             row.createCell(0).setCellValue(student.getNumber());
-            row.createCell(1).setCellValue(clazz);
-            row.createCell(2).setCellValue(student.getCode());
-            row.createCell(3).setCellValue(student.getName());
-            row.createCell(4).setCellValue(exam);
-            row.createCell(5);
+            row.createCell(1).setCellValue(student.getCollege());
+            row.createCell(2).setCellValue(clazz);
+            row.createCell(3).setCellValue(student.getCode());
+            row.createCell(4).setCellValue(student.getName());
+            row.createCell(5).setCellValue(exam);
             row.createCell(6);
-            for (int i = 0; i < 7; i++) {
+            row.createCell(7);
+            for (int i = 0; i < 8; i++) {
                 row.getCell(i).setCellStyle(infoStyle);
             }
         }
@@ -124,7 +126,6 @@ public class ExamService {
         Row row = sheet.createRow(0);
         Cell cell1 = row.createCell(0);
         Cell cell2 = row.createCell(1);
-
         Cell cell3 = row.createCell(2);
 
         Cell cell4 = row.createCell(3);
@@ -133,19 +134,22 @@ public class ExamService {
 
         Cell cell6 = row.createCell(5);
 
-        Cell cell = row.createCell(6);
+        Cell cell7 = row.createCell(6);
 
-        List<Cell> cells = Lists.newArrayList(cell, cell1, cell2, cell3, cell4, cell5, cell6);
+        Cell cell8 = row.createCell(7);
+
+        List<Cell> cells = Lists.newArrayList(cell8, cell7, cell1, cell2, cell3, cell4, cell5, cell6);
         cells.forEach(aCell -> {
             aCell.setCellStyle(style);
         });
         cell1.setCellValue("序号");
-        cell2.setCellValue("班级");
-        cell3.setCellValue("学号");
-        cell4.setCellValue("姓名");
-        cell5.setCellValue("科目");
-        cell6.setCellValue("签名");
-        cell.setCellValue("备注（重修提前修请注明）");
+        cell2.setCellValue("学院");
+        cell3.setCellValue("班级");
+        cell4.setCellValue("学号");
+        cell5.setCellValue("姓名");
+        cell6.setCellValue("科目");
+        cell7.setCellValue("签名");
+        cell8.setCellValue("备注（重修提前修请注明）");
 
     }
 
@@ -156,7 +160,13 @@ public class ExamService {
             Sheet sheet = workbook.getSheetAt(0);
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
-                String clazz = row.getCell(5).getStringCellValue();
+                Cell cell = row.getCell(4);
+                String clazz;
+                if (Objects.equals(cell.getCellType(), CellType.NUMERIC)) {
+                    clazz = (int) (cell.getNumericCellValue()) + "";
+                } else {
+                    clazz = cell.getStringCellValue();
+                }
                 String exam = row.getCell(0).getStringCellValue();
                 String last = exams.isEmpty() ? "" : exams.get(exams.size() - 1);
                 List<String> classesForExam;
@@ -184,6 +194,7 @@ public class ExamService {
                 studentDTO.setCode(getCode(row));
                 studentDTO.setClazz(row.getCell(2).getStringCellValue());
                 studentDTO.setName(row.getCell(1).getStringCellValue());
+                studentDTO.setCollege(row.getCell(3).getStringCellValue());
                 List<StudentDTO> students = map.computeIfAbsent(studentDTO.getClazz(), unused -> Lists.newArrayList());
                 studentDTO.setNumber(students.size() + 1);
                 students.add(studentDTO);
